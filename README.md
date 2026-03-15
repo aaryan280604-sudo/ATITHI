@@ -31,7 +31,6 @@
 - [Architecture & Workflow](#-architecture--workflow)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
 - [The Team](#-the-team)
 
 ---
@@ -240,46 +239,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔑 Environment Variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-# Google Gemini AI (Free tier available)
-# Get key at: https://aistudio.google.com/app/apikey
-GEMINI_API_KEY="your_gemini_api_key_here"
-
-# RapidAPI Key (for Zomato & Booking.com dynamic data)
-# Get key at: https://rapidapi.com
-RAPIDAPI_KEY="your_rapidapi_key_here"
-```
-
-> ⚠️ **Never commit `.env.local` to GitHub!** It is already listed in `.gitignore`.
-
----
-
 ## 👨‍💻 The Team
 
 > *Built with ❤️ by four friends who wanted smarter travel.*
 
 <table>
   <tr>
-    <td align="center">
-      <b>Aaryan Singh</b><br/>
-      <sub>Full Stack Developer & Project Lead</sub>
-    </td>
-    <td align="center">
-      <b>Aditya Raj</b><br/>
-      <sub>Frontend Developer & UI/UX Design</sub>
-    </td>
-    <td align="center">
-      <b>Dablu Kumar</b><br/>
-      <sub>Backend & Data Engineering</sub>
-    </td>
-    <td align="center">
-      <b>Akhil Thakur</b><br/>
-      <sub>AI Integration & Research</sub>
-    </td>
+    <td align="center"><b>Aaryan Singh</b></td>
+    <td align="center"><b>Aditya Raj</b></td>
+    <td align="center"><b>Dablu Kumar</b></td>
+    <td align="center"><b>Akhil Thakur</b></td>
   </tr>
 </table>
 
