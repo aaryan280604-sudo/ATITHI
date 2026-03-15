@@ -14,34 +14,18 @@ const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { 
 // Leaflet CSS needs to be imported manually in Next.js
 import "leaflet/dist/leaflet.css";
 
-// Fix Leaflet's default icon paths in Next.js/Webpack
-import L from "leaflet";
-const iconPerson = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-gold.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const iconRestaurant = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-const iconHotel = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// Icons are loaded lazily (client-side only) to avoid SSR `window is not defined`
+async function makeIcon(color: string) {
+  const L = (await import("leaflet")).default;
+  return new L.Icon({
+    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+}
 
 interface InteractiveLeafletMapProps {
   userLocation: { lat: number; lng: number } | null;
@@ -61,10 +45,19 @@ export default function InteractiveLeafletMap({
   const [hotels, setHotels] = useState<Record<string, any>[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [icons, setIcons] = useState<{
+    person: import("leaflet").Icon | null;
+    restaurant: import("leaflet").Icon | null;
+    hotel: import("leaflet").Icon | null;
+  }>({ person: null, restaurant: null, hotel: null });
 
   // Avoid hydration mismatch by only rendering the map client-side
   useEffect(() => {
     setIsMounted(true);
+    // Load Leaflet icons only on the client
+    Promise.all([makeIcon("gold"), makeIcon("red"), makeIcon("blue")]).then(
+      ([person, restaurant, hotel]) => setIcons({ person, restaurant, hotel })
+    );
   }, []);
 
   useEffect(() => {
@@ -141,8 +134,8 @@ export default function InteractiveLeafletMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {userLocation && (
-          <Marker position={[userLocation.lat, userLocation.lng]} icon={iconPerson}>
+        {userLocation && icons.person && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={icons.person}>
             <Popup>
               <div className="font-semibold text-center">You are here</div>
             </Popup>
@@ -155,7 +148,7 @@ export default function InteractiveLeafletMap({
             <Marker
               key={`rest-${i}`}
               position={[parseFloat(rest.location.latitude), parseFloat(rest.location.longitude)]}
-              icon={iconRestaurant}
+              icon={icons.restaurant ?? undefined}
             >
               <Popup>
                 <div className="p-1 max-w-[200px] space-y-1">
@@ -191,7 +184,7 @@ export default function InteractiveLeafletMap({
             <Marker
               key={`hotel-${i}`}
               position={[hotel.latitude, hotel.longitude]}
-              icon={iconHotel}
+              icon={icons.hotel ?? undefined}
             >
               <Popup>
                 <div className="p-1 max-w-[200px] space-y-1">

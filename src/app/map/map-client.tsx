@@ -12,32 +12,43 @@ const Marker = dynamic(() => import("react-leaflet").then((mod) => mod.Marker), 
 const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
 
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
 const defaultCenter = { lat: 26.9124, lng: 75.7873 };
 
-const iconPerson = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// Icons are created lazily (client-side only) to avoid SSR `window is not defined`
+let L: typeof import("leaflet") | null = null;
 
-const getMarkerIcon = (type: string) => {
+async function getL() {
+  if (!L) L = (await import("leaflet")).default as unknown as typeof import("leaflet");
+  return L;
+}
+
+async function getIconPerson() {
+  const Leaflet = await getL();
+  return new Leaflet.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+}
+
+async function getMarkerIcon(type: string) {
+  const Leaflet = await getL();
   let color = "blue";
   if (type === "food") color = "red";
   if (type === "market") color = "green";
-  return new L.Icon({
+  return new Leaflet.Icon({
     iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
     shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    shadowSize: [41, 41],
   });
-};
+}
 
 export default function MapClient() {
   const { location, loading: geoLoading } = useGeolocation();
@@ -48,9 +59,24 @@ export default function MapClient() {
   const [markets, setMarkets] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [icons, setIcons] = useState<{
+    person: import("leaflet").Icon | null;
+    food: import("leaflet").Icon | null;
+    stay: import("leaflet").Icon | null;
+    market: import("leaflet").Icon | null;
+  }>({ person: null, food: null, stay: null, market: null });
 
   useEffect(() => {
     setIsMounted(true);
+    // Load icons after mount (client-side only)
+    Promise.all([
+      getIconPerson(),
+      getMarkerIcon("food"),
+      getMarkerIcon("stay"),
+      getMarkerIcon("market"),
+    ]).then(([person, food, stay, market]) => {
+      setIcons({ person, food, stay, market });
+    });
   }, []);
 
   useEffect(() => {
@@ -159,8 +185,8 @@ export default function MapClient() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {location && (
-            <Marker position={[location.lat, location.lng]} icon={iconPerson}>
+          {location && icons.person && (
+            <Marker position={[location.lat, location.lng]} icon={icons.person}>
               <Popup>
                  <div className="font-semibold text-center">You are here</div>
               </Popup>
@@ -171,7 +197,7 @@ export default function MapClient() {
             <Marker 
               key={`${item.type}-${item.id}`}
               position={[item.lat, item.lng]}
-              icon={getMarkerIcon(item.type)}
+              icon={icons[item.type as keyof typeof icons] ?? undefined}
               eventHandlers={{ click: () => setAiSuggestion(null) }}
             >
                <Popup>
